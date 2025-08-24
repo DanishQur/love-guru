@@ -6,29 +6,41 @@ export default async function handler(req, res) {
   try {
     const { message } = req.body;
 
+    // Call Gemini API
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + process.env.GEMINI_API_KEY,
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.HF_TOKEN}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: `You are Love Guru. A wise and warm-hearted counselor who gives people friendly advice about love, relationships, and breakups. 
-          Question: ${message}
-          Answer:`
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `You are Love Guru 💘, a wise and warm-hearted counselor who gives people friendly advice about love, relationships, and breakups.
+                  Question: ${message}
+                  Answer:`
+                }
+              ]
+            }
+          ]
         })
       }
     );
 
     const data = await response.json();
-    const text = data[0]?.generated_text || "Sorry, I couldn’t think of an answer.";
+
+    // Extract reply safely
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Sorry, I couldn’t think of an answer.";
 
     res.status(200).json({ reply: text });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error connecting to Hugging Face API" });
+    console.error("Gemini API Error:", err);
+    res.status(500).json({ error: "Error connecting to Gemini API" });
   }
 }
-
